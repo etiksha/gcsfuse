@@ -9,7 +9,7 @@ sudo dpkg --install gcsfuse_0.41.1_amd64.deb
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse/perfmetrics"
 echo Mounting gcs bucket
 mkdir gcs
-gcsfuse gcs-fuse-dashboard-fio --implicit-dirs --max-conns-per-host 100 --disable-http2 gcs 
+gcsfuse --implicit-dirs --max-conns-per-host 100 --disable-http2 gcs-fuse-dashboard-fio gcs 
 chmod +x build.sh
 ./build.sh
 
