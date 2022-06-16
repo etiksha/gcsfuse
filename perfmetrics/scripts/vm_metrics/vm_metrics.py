@@ -1,14 +1,12 @@
 """
 To execute the script:
->>blaze run vmmetrics {instance} {start time in epoch sec} {end time in epoch sec} {mean period in sec}
-
+>>python3 vm_metrics.py {instance} {start time in epoch sec} {end time in epoch sec} {mean period in sec}
 The code takes input the start time and end time (in epoch seconds) and the
 instance name and the mean period. Then it creates an instance of VmMetrics
 class and calls its methods with all the corresponding parameters, makes the api
 call, reads the response and returns a list of metric points where each point
 has the peak value and mean value of a mean period. Then it dumps all the data
 into a google sheet.
-
 """
 import sys
 import os
@@ -52,18 +50,14 @@ def _create_metric_points_from_response(peak_metrics_response,
                                         mean_metrics_response,
                                         factor):
   """Parses the given peak and mean metrics and returns a list of MetricPoint.
-
     Args:
       peak_metrics_response (object): The peak metrics API response
       mean_metrics_response (object): The mean metrics API response
       factor (float) : For converting the API response values into appropriate units.
-
     Returns:
       list[MetricPoint]
-
     Raises:
       NoValuesError: Raise when API response is empty.
-
   """
   metric_point_list = []
   for peak_metric, mean_metric in zip(peak_metrics_response,
@@ -88,7 +82,6 @@ class VmMetrics:
 
   def _validate_start_end_times(self, start_time_sec, end_time_sec):
     """Checks that start time is less than end time.
-
     Args:
       start_time_sec (int) : Epoch seconds
       end_time_sec (int) : Epoch seconds
@@ -103,7 +96,6 @@ class VmMetrics:
   def _get_api_response(self, metric_type, start_time_sec, end_time_sec,
                         instance, period):
     """Fetches the API response for peak and mean metrics.
-
     Args:
       metric_type (str): The type of metric
       start_time_sec (int): Epoch seconds
@@ -167,7 +159,6 @@ class VmMetrics:
   def _get_metrics(self, start_time_sec, end_time_sec, instance, period,
                    metric_type, factor):
     """Returns the metrics data for requested metric type.
-
     Args:
       start_time_sec (int): Epoch seconds
       end_time_sec (int): Epoch seconds
@@ -190,7 +181,6 @@ class VmMetrics:
                                               end_time_sec, instance,
                                               period) -> None:
     """Fetches the metrics data for cpu utilization and received bytes count and writes it to a google sheet.
-
     Args:
       start_time_sec (int): Epoch seconds
       end_time_sec (int): Epoch seconds
@@ -213,7 +203,7 @@ class VmMetrics:
           rec_bytes_metric_point.mean_value
       ])
 
-    # writing metrics data to google sheet
+    # Writing metrics data to google sheet
     gsheet.write_to_google_sheet(WORKSHEET_NAME, metrics_data)
 
 
