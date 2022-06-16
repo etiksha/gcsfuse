@@ -1,10 +1,10 @@
-"""Executes fio_metrics.py and vmmetrics.py by passing appropriate arguments.
+"""Executes fio_metrics.py and vm_metrics.py by passing appropriate arguments.
 """
 import socket
 import sys
 from fio import fio_metrics
 import time
-from vmmetrics import vmmetrics
+from vm_metrics import vm_metrics
 
 START_TIME = 'start_time'
 END_TIME = 'end_time'
@@ -16,12 +16,12 @@ if __name__ == '__main__':
   if len(argv) != 2:
     raise TypeError('Incorrect number of arguments.\n'
                     'Usage: '
-                    'python3 execute_codes.py <fio output json filepath>')
+                    'python3 fetch_metrics.py <fio output json filepath>')
 
   fio_metrics_obj = fio_metrics.FioMetrics()
   temp = fio_metrics_obj.get_metrics(argv[1], True)
   time.sleep(250)
-  vm_metrics_obj = vmmetrics.VmMetrics()
+  vm_metrics_obj = vm_metrics.VmMetrics()
   for job in temp:
     start_time_sec = job[START_TIME]
     end_time_sec = job[END_TIME]
