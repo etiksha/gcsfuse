@@ -8,8 +8,8 @@ pip install -r requirements.txt --user
 echo Adding pytest to PATH:
 export PATH=/home/kbuilder/.local/bin:$PATH
 cd ..
-gsutil cp gs://gcs-fuse-dashboard-fio/creds.json dashboard/gsheet
-cd dashboard
+gsutil cp gs://gcs-fuse-dashboard-fio/creds.json perfmetrics/gsheet
+cd perfmetrics
 echo Running tests..
 #pytest gsheet/gsheet_test.py
 pytest vmmetrics/vmmetrics_test.py
