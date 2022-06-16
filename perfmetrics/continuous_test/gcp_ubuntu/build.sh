@@ -11,5 +11,5 @@ echo Mounting gcs bucket
 mkdir gcs
 gcsfuse gcs-fuse-dashboard-fio gcs
 ls
-./build2.sh
+./build.sh
 
