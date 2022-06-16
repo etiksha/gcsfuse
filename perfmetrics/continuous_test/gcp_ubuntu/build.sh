@@ -10,5 +10,5 @@ cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse/perfmetrics"
 echo Mounting gcs bucket
 mkdir gcs
 gcsfuse gcs-fuse-dashboard-fio gcs
-./build.sh
+./build2.sh
 
