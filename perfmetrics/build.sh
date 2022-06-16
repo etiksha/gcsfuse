@@ -3,6 +3,7 @@
 set -e
 echo Running fio test..
 fio job_files/job_1.fio --output-format=json --output='output.json'
+cat output.json
 echo Installing requirements..
 pip install -r requirements.txt --user
 echo Adding pytest to PATH:
