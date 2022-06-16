@@ -3,6 +3,7 @@
 import socket
 import sys
 from fio import fio_metrics
+import time
 from vmmetrics import vmmetrics
 
 START_TIME = 'start_time'
@@ -19,6 +20,7 @@ if __name__ == '__main__':
 
   fio_metrics_obj = fio_metrics.FioMetrics()
   temp = fio_metrics_obj.get_metrics(argv[1], True)
+  time.sleep(250)
   vm_metrics_obj = vmmetrics.VmMetrics()
   for job in temp:
     start_time_sec = job[START_TIME]
