@@ -11,7 +11,7 @@ cd ..
 gsutil cp gs://gcs-fuse-dashboard-fio/creds.json dashboard/gsheet
 cd dashboard
 echo Running tests..
-pytest gsheet/gsheet_test.py
+#pytest gsheet/gsheet_test.py
 pytest vmmetrics/vmmetrics_test.py
 echo Fetching results..
 python3 execute_codes.py output.json
