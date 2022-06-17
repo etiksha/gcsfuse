@@ -4,9 +4,9 @@ sudo apt-get update
 # echo Installing fio
 # sudo apt-get install fio -y
 # echo Installing gcsfuse
-# GCSFUSE_VERSION=0.41.1
-# curl -L -O https://github.com/GoogleCloudPlatform/gcsfuse/releases/download/v$GCSFUSE_VERSION/gcsfuse_"$GCSFUSE_VERSION"_amd64.deb
-# sudo dpkg --install gcsfuse_"$GCSFUSE_VERSION"_amd64.deb
+GCSFUSE_VERSION=0.41.1
+curl -L -O https://github.com/GoogleCloudPlatform/gcsfuse/releases/download/v$GCSFUSE_VERSION/gcsfuse_"$GCSFUSE_VERSION"_amd64.deb
+sudo dpkg --install gcsfuse_"$GCSFUSE_VERSION"_amd64.deb
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse/perfmetrics/scripts"
 echo Mounting gcs bucket
 mkdir -p gcs
