@@ -1,6 +1,6 @@
 #i!/bin/bash
 set -e
-scripts -a logfile
+. -a logfile
 sudo apt-get update
 echo Installing fio
 sudo apt-get install fio -y
