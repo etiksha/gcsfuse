@@ -16,8 +16,8 @@ BUCKET_NAME=gcs-fuse-dashboard-fio
 MOUNT_POINT=gcs
 gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT
 chmod +x build.sh
-./build.sh
-cat logfile
+./build.sh | tee -a ...../logfile
+cat ....../logfile
 
 
 # #i!/bin/bash
