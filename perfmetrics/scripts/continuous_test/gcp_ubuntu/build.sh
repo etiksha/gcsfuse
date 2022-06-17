@@ -13,7 +13,7 @@ mkdir -p gcs
 GCSFUSE_FLAGS="--implicit-dirs --max-conns-per-host 100 --disable-http2"
 BUCKET_NAME=gcs-fuse-dashboard-fio
 MOUNT_POINT=gcs
-script -c "gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT" logfile
+script --command gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT --log-out logfile
 #gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT
 echo printing logfile
 cat logfile
