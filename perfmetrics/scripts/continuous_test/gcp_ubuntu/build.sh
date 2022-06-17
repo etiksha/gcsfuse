@@ -1,5 +1,6 @@
 #i!/bin/bash
 set -e
+./build.sh | tee -a logfile
 sudo apt-get update
 echo Installing fio
 sudo apt-get install fio -y
@@ -16,6 +17,8 @@ MOUNT_POINT=gcs
 gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT
 chmod +x build.sh
 ./build.sh
+cat logfile
+
 
 # #i!/bin/bash
 # set -e
