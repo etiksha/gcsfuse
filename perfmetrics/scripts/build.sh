@@ -2,7 +2,7 @@
 #!/bin/bash
 set -e
 echo Running fio test..
-fio job_files/job_1.fio --output-format=json --output='output.json'
+fio job_files/job_4.fio --output-format=json --output='output.json'
 cat output.json
 echo Installing requirements..
 pip install -r requirements.txt --user
