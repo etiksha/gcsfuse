@@ -4,6 +4,7 @@ import socket
 import sys
 from fio import fio_metrics
 import time
+import asyncio
 from vm_metrics import vm_metrics
 
 START_TIME = 'start_time'
@@ -21,7 +22,7 @@ async def fun():
   fio_metrics_obj = fio_metrics.FioMetrics()
   temp = await fio_metrics_obj.get_metrics(argv[1], True)
   print(time.time())
-  await time.sleep(250)
+  time.sleep(250)
   print(time.time())
   vm_metrics_obj = vm_metrics.VmMetrics()
   for job in temp:
@@ -34,7 +35,7 @@ async def fun():
                                                      PERIOD)
 
 if __name__ == '__main__':
-  fun()
+  asyncio.run(fun())
 #   argv = sys.argv
 #   if len(argv) != 2:
 #     raise TypeError('Incorrect number of arguments.\n'
