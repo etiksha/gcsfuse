@@ -44,7 +44,10 @@ if __name__ == '__main__':
                     'python3 fetch_metrics.py <fio output json filepath>')
 
   fio_metrics_obj = fio_metrics.FioMetrics()
+  print("fio metrics start:")
+  print(datetime.fromtimestamp(time.time()))
   temp = fio_metrics_obj.get_metrics(argv[1], True)
+  print("fio metrics end and sleep start:")
   print(datetime.fromtimestamp(time.time()))
   time.sleep(250)
   print(datetime.fromtimestamp(time.time()))
