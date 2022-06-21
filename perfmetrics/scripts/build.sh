@@ -13,6 +13,6 @@ export PATH=/home/kbuilder/.local/bin:$PATH
 gsutil cp gs://gcs-fuse-dashboard-fio/creds.json ./gsheet
 echo Running tests..
 #pytest gsheet/gsheet_test.py
-pytest vm_metrics/vm_metrics_test.py
+#pytest vm_metrics/vm_metrics_test.py
 echo Fetching results..
 python3 fetch_metrics.py output.json
