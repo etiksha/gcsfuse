@@ -25,6 +25,8 @@ if __name__ == '__main__':
   for job in temp:
     start_time_sec = job[START_TIME]
     end_time_sec = job[END_TIME]
+    print(start_time_sec)
+    print(end_time_sec)
     vm_metrics_obj.fetch_metrics_and_write_to_google_sheet(start_time_sec,
                                                      end_time_sec, INSTANCE,
                                                      PERIOD)
