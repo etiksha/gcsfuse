@@ -2,7 +2,6 @@
 import json
 import sys
 from unittest import mock
-from gsheet import gsheet
 import vm_metrics
 from unittest import TestCase
 import os
