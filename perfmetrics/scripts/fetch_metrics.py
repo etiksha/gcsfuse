@@ -26,8 +26,11 @@ if __name__ == '__main__':
   print(datetime.fromtimestamp(time.time()))
   temp = fio_metrics_obj.get_metrics(argv[1], True)
   print("fio metrics end and sleep start:")
+  t=240
+  for job in temp:
+    t=t+job[END_TIME]-job[START_TIME] 
   print(datetime.fromtimestamp(time.time()))
-  time.sleep(250)
+  time.sleep(t)
   print(datetime.fromtimestamp(time.time()))
   vm_metrics_obj = vm_metrics.VmMetrics()
   for job in temp:
