@@ -1,19 +1,9 @@
-"""Extracts required metrics from fio output file and writes to google sheet.
-
-   Takes fio output json filepath as command-line input
-   Extracts IOPS, Bandwidth and Latency (min, max, mean) from given input file
-   and writes the metrics in appropriate columns in a google sheet
-
-   Usage: python3 fio_metrics.py <path to fio output json file>
-
-"""
-
 import json
 import re
 import sys
 from typing import Any, Dict, List
-sys.path.append('./gsheet')
-import gsheet
+
+from gsheet import gsheet
 
 JOBNAME = 'jobname'
 GLOBAL_OPTS = 'global options'
@@ -24,6 +14,7 @@ NUMJOBS = 'numjobs'
 THREADS = 'num_threads'
 TIMESTAMP_MS = 'timestamp_ms'
 RUNTIME = 'runtime'
+RAMPTIME = 'ramp_time'
 START_TIME = 'start_time'
 END_TIME = 'end_time'
 READ = 'read'
@@ -34,16 +25,9 @@ MIN = 'min'
 MAX = 'max'
 MEAN = 'mean'
 
-# Constants for writing to Google Sheets
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-SPREADSHEET_ID = '1kvHv1OBCzr9GnFxRu9RTJC7jjQjc9M4rAiDnhyak2Sg'
-CREDENTIALS_PATH = ('/usr/local/google/home/ahanadatta/'
-                    '.config/gspread/service_account.json')
+# Google sheet worksheet
 WORKSHEET_NAME = 'fio_metrics!'
-# cell containing the total number of entries in the sheet
-# so that we know where the new entry has to be added
-NUM_ENTRIES_CELL = 'N4'
-UNITS = {BW: 'KiB/s', LAT: 'nsec', IOPS: ''}
+
 FILESIZE_CONVERSION = {
     'b': 0.001,
     'k': 1,
@@ -57,6 +41,43 @@ FILESIZE_CONVERSION = {
     'p': 10**12,
     'pb': 10**12
 }
+
+RAMPTIME_CONVERSION = {
+    'us': 10**(-3),
+    'ms': 1,
+    's': 1000,
+    'm': 60*1000,
+    'h': 3600*1000,
+    'd': 24*3600*1000
+}
+
+
+def _convert_value(value, conversion_dict, default_unit=''):
+  """Converts data strings to a particular unit based on conversion_dict.
+
+  Args:
+    value: String, contains data value[+unit]
+    conversion_dict: Dictionary containing units and their respective
+      multiplication factor
+    default_unit: String, specifies the default unit, used if no unit is present
+      in 'value'
+
+  Returns:
+    Int, number in a specific unit
+
+  Ex: For args value = "5s" and conversion_dict=RAMPTIME_CONVERSION 
+      "5s" will be converted to 5000 milliseconds and 5000 will be returned
+
+  """
+  num_unit = re.findall('[0-9]+|[A-Za-z]+', value)
+  if len(num_unit) == 2:
+    unit = num_unit[1]
+  else:
+    unit = default_unit
+  num = num_unit[0]
+  mult_factor = conversion_dict[unit.lower()]
+  converted_num = int(num) * mult_factor
+  return converted_num
 
 
 class NoValuesError(Exception):
@@ -127,30 +148,55 @@ class FioMetrics:
       raise NoValuesError('No data in json object')
 
     global_filesize = ''
+    global_ramptime_ms = 0
     if GLOBAL_OPTS in fio_out:
       if FILESIZE in fio_out[GLOBAL_OPTS]:
         global_filesize = fio_out[GLOBAL_OPTS][FILESIZE]
+      if RAMPTIME in fio_out[GLOBAL_OPTS]:
+        global_ramptime_ms = _convert_value(fio_out[GLOBAL_OPTS][RAMPTIME],
+                                            RAMPTIME_CONVERSION, 's')
 
     all_jobs = []
-    prev_endtime = 0
+    prev_start_time_s = 0
+    rev_start_end_times = []
+    for job in reversed(fio_out[JOBS]):
+      ramptime_ms = 0
+      if JOB_OPTS in job:
+        if RAMPTIME in job[JOB_OPTS]:
+          ramptime_ms = _convert_value(job[JOB_OPTS][RAMPTIME],
+                                       RAMPTIME_CONVERSION, 's')
+      if ramptime_ms == 0:
+        ramptime_ms = global_ramptime_ms
+
+      # for multiple jobs, end time of one job = start time of next job
+      end_time_ms = prev_start_time_s * 1000 if prev_start_time_s > 0 else fio_out[
+          TIMESTAMP_MS]
+      # job start time = job end time - job runtime - ramp time
+      start_time_ms = end_time_ms - job[READ][RUNTIME] - ramptime_ms
+
+      # converting start and end time to seconds
+      start_time_s = start_time_ms // 1000
+      end_time_s = round(end_time_ms/1000)
+      prev_start_time_s = start_time_s
+      rev_start_end_times.append([start_time_s, end_time_s])
+    start_end_times = list(reversed(rev_start_end_times))
+    print(start_end_times)
+
     for i, job in enumerate(fio_out[JOBS]):
       jobname = ''
       iops = bw_kibps = min_lat_ns = max_lat_ns = mean_lat_ns = filesize = 0
       jobname = job[JOBNAME]
-      # for multiple jobs, start time of one job = end time of previous job
-      start_time = prev_endtime * 1000 if prev_endtime > 0 else fio_out[
-          TIMESTAMP_MS]
       job_read = job[READ]
-      end_time = start_time + job_read[RUNTIME]
-      start_time = start_time // 1000
-      end_time = round(end_time/1000)
-      prev_endtime = end_time
+
       iops = job_read[IOPS]
       bw_kibps = job_read[BW]
       min_lat_ns = job_read[LAT][MIN]
       max_lat_ns = job_read[LAT][MAX]
       mean_lat_ns = job_read[LAT][MEAN]
+
+      # default value of numjobs
       numjobs = '1'
+      ramptime_ms = 0
       if JOB_OPTS in job:
         if NUMJOBS in job[JOB_OPTS]:
           numjobs = job[JOB_OPTS][NUMJOBS]
@@ -161,19 +207,18 @@ class FioMetrics:
       if not filesize:
         filesize = global_filesize
 
+      start_time_s, end_time_s = start_end_times[i]
+
       # If jobname and filesize are empty OR start_time=end_time
       # OR all the metrics are zero, log skip warning and continue to next job
-      if ((not jobname and not filesize) or (start_time == end_time) or
+      if ((not jobname and not filesize) or (start_time_s == end_time_s) or
           (not iops and not bw_kibps and not min_lat_ns and not max_lat_ns and
            not mean_lat_ns)):
-        # TODO(ahanadatta): Print statement will be replaced by google logging.
+        # TODO(ahanadatta): Print statement will be replaced by logging.
         print(f'No job details or metrics in json, skipping job index {i}')
-        prev_endtime = 0
         continue
 
-      filesize_num, filesize_unit = re.findall('[0-9]+|[A-Za-z]+', filesize)
-      mult_factor = FILESIZE_CONVERSION[filesize_unit.lower()]
-      filesize_kb = int(filesize_num) * mult_factor
+      filesize_kb = _convert_value(filesize, FILESIZE_CONVERSION)
 
       numjobs = int(numjobs)
 
@@ -181,8 +226,8 @@ class FioMetrics:
           JOBNAME: jobname,
           FILESIZE: filesize_kb,
           THREADS: numjobs,
-          START_TIME: start_time,
-          END_TIME: end_time,
+          START_TIME: start_time_s,
+          END_TIME: end_time_s,
           IOPS: iops,
           BW: bw_kibps,
           LAT: {MIN: min_lat_ns, MAX: max_lat_ns, MEAN: mean_lat_ns}
@@ -205,7 +250,7 @@ class FioMetrics:
       values.append((job[JOBNAME], job[FILESIZE], job[THREADS], job[START_TIME],
                      job[END_TIME], job[IOPS], job[BW], job[LAT][MIN],
                      job[LAT][MAX], job[LAT][MEAN]))
-    gsheet.write_to_google_sheet('fio_metrics!', values)
+    gsheet.write_to_google_sheet(WORKSHEET_NAME, values)
 
   def get_metrics(self, filepath, add_to_gsheets=True) -> List[Dict[str, Any]]:
     """Returns job metrics obtained from given filepath and writes to gsheets.
@@ -234,5 +279,5 @@ if __name__ == '__main__':
                     'python3 fio_metrics.py <fio output json filepath>')
 
   fio_metrics_obj = FioMetrics()
-  temp = fio_metrics_obj.get_metrics(argv[1], True)
+  temp = fio_metrics_obj.get_metrics(argv[1])
   print(temp)
