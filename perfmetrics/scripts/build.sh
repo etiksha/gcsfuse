@@ -3,6 +3,7 @@
 set -e
 echo Running fio test..
 fio job_files/job_5.fio --output-format=json --output='output.json'
+wait
 cat output.json
 echo Installing requirements..
 pip install -r requirements.txt --user
