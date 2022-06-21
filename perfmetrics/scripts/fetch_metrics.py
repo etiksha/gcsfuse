@@ -20,6 +20,7 @@ if __name__ == '__main__':
 
   fio_metrics_obj = fio_metrics.FioMetrics()
   temp = fio_metrics_obj.get_metrics(argv[1], True)
+  print(time.time())
   time.sleep(250)
   vm_metrics_obj = vm_metrics.VmMetrics()
   for job in temp:
