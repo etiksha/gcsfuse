@@ -22,20 +22,27 @@ from gsheet import gsheet
 WORKSHEET_NAME = 'vm_metrics!'
 
 PROJECT_NAME = 'projects/gcs-fuse-test'
+CUSTOM_INSTANCE = 'gce_instance'
 CPU_UTI_METRIC = 'compute.googleapis.com/instance/cpu/utilization'
 RECEIVED_BYTES_COUNT_METRIC = 'compute.googleapis.com/instance/network/received_bytes_count'
+RAM_UTI_METRIC = 'compute.googleapis.com/instance/memory/balloon/ram_used'
+OPS_ERROR_COUNT_METRIC = 'custom.googleapis.com/gcsfuse/fs/ops_error_count'
+OPS_LATENCY_METRIC = 'custom.googleapis.com/gcsfuse/fs/ops_latency'
+READ_BYTES_COUNT_METRIC = 'custom.googleapis.com/gcsfuse/gcs/read_bytes_count'
 
 
 class NoValuesError(Exception):
   """API response values are missing."""
 
+
 @dataclasses.dataclass
 class MetricPoint:
-  peak_value: float 
+  peak_value: float
   mean_value: float
   start_time_sec: int
   end_time_sec: int
 
+  
 def _parse_metric_value_by_type(peak_value, peak_value_type) -> float:
   if peak_value_type == 3:
     return peak_value.double_value
@@ -129,12 +136,11 @@ class VmMetrics:
                          metric_type=metric_type, instance_name=instance)
     try:
       peak_metrics_response = client.list_time_series({
-          'name':PROJECT_NAME,
-          'filter':metric_filter,
-          'interval':interval,
-          'view':monitoring_v3.ListTimeSeriesRequest
-          .TimeSeriesView.FULL,
-          'aggregation':aggregation_peak,
+          'name': PROJECT_NAME,
+          'filter': metric_filter,
+          'interval': interval,
+          'view': monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
+          'aggregation': aggregation_peak,
       })
     except:
       raise GoogleAPICallError('The request for peak response of ' +
@@ -142,12 +148,11 @@ class VmMetrics:
 
     try:
       mean_metrics_response = client.list_time_series({
-          'name':PROJECT_NAME,
-          'filter':metric_filter,
-          'interval':interval,
-          'view':monitoring_v3.ListTimeSeriesRequest
-          .TimeSeriesView.FULL,
-          'aggregation':aggregation_mean,
+          'name': PROJECT_NAME,
+          'filter': metric_filter,
+          'interval': interval,
+          'view': monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
+          'aggregation': aggregation_mean,
       })
     except:
       raise GoogleAPICallError('The request for mean response of ' +
@@ -192,14 +197,17 @@ class VmMetrics:
                                      period, CPU_UTI_METRIC, 1 / 100)
     rec_bytes_data = self._get_metrics(start_time_sec, end_time_sec, instance,
                                        period, RECEIVED_BYTES_COUNT_METRIC,
-                                       60000)
+                                       60)
+    ram_uti_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+                                     period, RAM_UTI_METRIC, 1)
     metrics_data = []
-    for cpu_uti_metric_point, rec_bytes_metric_point in zip(
-        cpu_uti_data, rec_bytes_data):
+    for cpu_uti_metric_point, rec_bytes_metric_point, ram_uti_metric_point in zip(
+        cpu_uti_data, rec_bytes_data, ram_uti_data):
       metrics_data.append([
           cpu_uti_metric_point.start_time_sec, cpu_uti_metric_point.peak_value,
           cpu_uti_metric_point.mean_value, rec_bytes_metric_point.peak_value,
-          rec_bytes_metric_point.mean_value
+          rec_bytes_metric_point.mean_value, ram_uti_metric_point.peak_value,
+          ram_uti_metric_point.mean_value
       ])
 
     # Writing metrics data to google sheet
