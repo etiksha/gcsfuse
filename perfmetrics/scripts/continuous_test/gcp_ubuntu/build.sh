@@ -10,7 +10,7 @@ sudo dpkg --install gcsfuse_"$GCSFUSE_VERSION"_amd64.deb
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse/perfmetrics/scripts"
 echo Mounting gcs bucket
 mkdir -p gcs
-GCSFUSE_FLAGS="--implicit-dirs --max-conns-per-host 100 --disable-http2"
+GCSFUSE_FLAGS="--implicit-dirs --max-conns-per-host 100 --disable-http2 --experimental-stackdriver-export-interval=60s"
 BUCKET_NAME=gcs-fuse-dashboard-fio
 MOUNT_POINT=gcs
 gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT
