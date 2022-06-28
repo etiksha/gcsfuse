@@ -198,16 +198,13 @@ class VmMetrics:
     rec_bytes_data = self._get_metrics(start_time_sec, end_time_sec, instance,
                                        period, RECEIVED_BYTES_COUNT_METRIC,
                                        60)
-    ram_uti_data = self._get_metrics(start_time_sec, end_time_sec, instance,
-                                     period, RAM_UTI_METRIC, 1)
     metrics_data = []
     for cpu_uti_metric_point, rec_bytes_metric_point, ram_uti_metric_point in zip(
         cpu_uti_data, rec_bytes_data, ram_uti_data):
       metrics_data.append([
           cpu_uti_metric_point.start_time_sec, cpu_uti_metric_point.peak_value,
           cpu_uti_metric_point.mean_value, rec_bytes_metric_point.peak_value,
-          rec_bytes_metric_point.mean_value, ram_uti_metric_point.peak_value,
-          ram_uti_metric_point.mean_value
+          rec_bytes_metric_point.mean_value
       ])
 
     # Writing metrics data to google sheet
