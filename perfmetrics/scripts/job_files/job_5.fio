@@ -25,8 +25,8 @@ numjobs=10
 
 [2_thread]
 stonewall
-directory=gcs/2mb
-filesize=2M
+directory=gcs/3mb
+filesize=3M
 numjobs=10
 
 [3_thread]
