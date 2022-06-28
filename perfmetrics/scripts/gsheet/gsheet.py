@@ -5,7 +5,7 @@ from google.api_core.exceptions import GoogleAPICallError
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1kvHv1OBCzr9GnFxRu9RTJC7jjQjc9M4rAiDnhyak2Sg'
-NUM_ENTRIES_CELL = 'N4'
+NUM_ENTRIES_CELL = 'T4'
 CREDENTIALS_PATH = ('./gsheet/creds.json')
 
 
