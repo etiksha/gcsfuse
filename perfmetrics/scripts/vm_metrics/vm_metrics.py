@@ -199,8 +199,8 @@ class VmMetrics:
                                        period, RECEIVED_BYTES_COUNT_METRIC,
                                        60)
     metrics_data = []
-    for cpu_uti_metric_point, rec_bytes_metric_point, ram_uti_metric_point in zip(
-        cpu_uti_data, rec_bytes_data, ram_uti_data):
+    for cpu_uti_metric_point, rec_bytes_metric_point in zip(
+        cpu_uti_data, rec_bytes_data):
       metrics_data.append([
           cpu_uti_metric_point.start_time_sec, cpu_uti_metric_point.peak_value,
           cpu_uti_metric_point.mean_value, rec_bytes_metric_point.peak_value,
