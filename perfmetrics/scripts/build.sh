@@ -2,7 +2,7 @@
 #!/bin/bash
 set -e
 echo Running fio test..
-fio job_files/job_5.fio --output-format=json --output='output.json'
+fio job_files/job_5.fio --lat_percentiles 1 --output-format=json --output='output.json'
 echo Installing requirements..
 pip install -r requirements.txt --user
 echo Adding pytest to PATH:
