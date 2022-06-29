@@ -19,7 +19,7 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.cloud import monitoring_v3
 from gsheet import gsheet
 
-WORKSHEET_NAME = 'vm_metrics'
+WORKSHEET_NAME = 'vm_metrics!'
 
 PROJECT_NAME = 'projects/gcs-fuse-test'
 CPU_UTI_METRIC = 'compute.googleapis.com/instance/cpu/utilization'
