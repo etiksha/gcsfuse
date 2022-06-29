@@ -19,13 +19,11 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.cloud import monitoring_v3
 from gsheet import gsheet
 
-WORKSHEET_NAME = 'vm_metrics!'
+WORKSHEET_NAME = 'vm_metrics'
 
 PROJECT_NAME = 'projects/gcs-fuse-test'
-CUSTOM_INSTANCE = 'gce_instance'
 CPU_UTI_METRIC = 'compute.googleapis.com/instance/cpu/utilization'
 RECEIVED_BYTES_COUNT_METRIC = 'compute.googleapis.com/instance/network/received_bytes_count'
-RAM_UTI_METRIC = 'compute.googleapis.com/instance/memory/balloon/ram_used'
 OPS_ERROR_COUNT_METRIC = 'custom.googleapis.com/gcsfuse/fs/ops_error_count'
 OPS_LATENCY_METRIC = 'custom.googleapis.com/gcsfuse/fs/ops_latency'
 READ_BYTES_COUNT_METRIC = 'custom.googleapis.com/gcsfuse/gcs/read_bytes_count'
@@ -37,24 +35,23 @@ class NoValuesError(Exception):
 
 @dataclasses.dataclass
 class MetricPoint:
-  peak_value: float
-  mean_value: float
+  value: float
   start_time_sec: int
   end_time_sec: int
 
   
-def _parse_metric_value_by_type(peak_value, peak_value_type) -> float:
-  if peak_value_type == 3:
-    return peak_value.double_value
-  elif peak_value_type == 2:
-    return peak_value.int64_value
+def _parse_metric_value_by_type(value, value_type) -> float:
+  if value_type == 3:
+    return value.double_value
+  elif value_type == 2:
+    return value.int64_value
+  elif value_type == 5:
+    return value.distribution_value.mean
   else:
     raise Exception('Unhandled Value type')
 
 
-def _create_metric_points_from_response(peak_metrics_response,
-                                        mean_metrics_response,
-                                        factor):
+def _create_metric_points_from_response(metrics_response, factor):
   """Parses the given peak and mean metrics and returns a list of MetricPoint.
     Args:
       peak_metrics_response (object): The peak metrics API response
@@ -66,15 +63,12 @@ def _create_metric_points_from_response(peak_metrics_response,
       NoValuesError: Raise when API response is empty.
   """
   metric_point_list = []
-  for peak_metric, mean_metric in zip(peak_metrics_response,
-                                      mean_metrics_response):
-    for point_peak, point_mean in zip(peak_metric.points, mean_metric.points):
-      peak_value = _parse_metric_value_by_type(point_peak.value,
-                                               peak_metric.value_type)
-      metric_point = MetricPoint(peak_value / factor,
-                                 point_mean.value.double_value / factor,
-                                 point_peak.interval.start_time.seconds,
-                                 point_peak.interval.end_time.seconds)
+  for metric in metrics_response:
+    for point in metric.points:
+      value = _parse_metric_value_by_type(point.value, metric.value_type)
+      metric_point = MetricPoint(value / factor,
+                                 point.interval.start_time.seconds,
+                                 point.interval.end_time.seconds)
 
       metric_point_list.append(metric_point)
 
@@ -100,7 +94,7 @@ class VmMetrics:
       raise ValueError('Start time should be before end time')
 
   def _get_api_response(self, metric_type, start_time_sec, end_time_sec,
-                        instance, period):
+                        instance, period, aligner, fs_op):
     """Fetches the API response for peak and mean metrics.
     Args:
       metric_type (str): The type of metric
@@ -119,49 +113,42 @@ class VmMetrics:
         end_time={'seconds': int(end_time_sec)},
         start_time={'seconds': int(start_time_sec)})
 
-    aggregation_peak = monitoring_v3.Aggregation(
+    aggregation = monitoring_v3.Aggregation(
         alignment_period={'seconds': period},
-        per_series_aligner=monitoring_v3.Aggregation.Aligner
-        .ALIGN_MAX,
+        per_series_aligner=getattr(monitoring_v3.Aggregation.Aligner
+        ,aligner)
     )
 
-    aggregation_mean = monitoring_v3.Aggregation(
-        alignment_period={'seconds': period},
-        per_series_aligner=monitoring_v3.Aggregation.Aligner
-        .ALIGN_MEAN,
-    )
-
-    metric_filter = ('metric.type = "{metric_type}" AND '
+    if(metric_type[0:7]=='compute'):
+        metric_filter = ('metric.type = "{metric_type}" AND '
                      'metric.label.instance_name ={instance_name}').format(
                          metric_type=metric_type, instance_name=instance)
+    elif(metric_type[0:6]=='custom'):
+        if(fs_op == ''):
+            metric_filter = ('metric.type = "{metric_type}" AND '
+                     'metric.labels.opencensus_task = ends_with("{instance_name}") ').format(
+                      metric_type=metric_type, instance_name=instance)
+        else:
+            metric_filter = ('metric.type = "{metric_type}" AND '
+                    'metric.labels.opencensus_task = ends_with("{instance_name}") AND '
+                    'metric.labels.fs_op = {fs_op}').format(
+                    metric_type=metric_type, instance_name=instance, fs_op=fs_op)
+
     try:
-      peak_metrics_response = client.list_time_series({
+      metrics_response = client.list_time_series({
           'name': PROJECT_NAME,
           'filter': metric_filter,
           'interval': interval,
           'view': monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
-          'aggregation': aggregation_peak,
+          'aggregation': aggregation,
       })
     except:
       raise GoogleAPICallError('The request for peak response of ' +
                                metric_type + ' failed, Please try again.')
-
-    try:
-      mean_metrics_response = client.list_time_series({
-          'name': PROJECT_NAME,
-          'filter': metric_filter,
-          'interval': interval,
-          'view': monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
-          'aggregation': aggregation_mean,
-      })
-    except:
-      raise GoogleAPICallError('The request for mean response of ' +
-                               metric_type + ' failed, Please try again.')
-
-    return [peak_metrics_response, mean_metrics_response]
+    return metrics_response
 
   def _get_metrics(self, start_time_sec, end_time_sec, instance, period,
-                   metric_type, factor):
+                   metric_type, factor, aligner, fs_op):
     """Returns the metrics data for requested metric type.
     Args:
       start_time_sec (int): Epoch seconds
@@ -174,11 +161,9 @@ class VmMetrics:
     Returns:
       list[MetricPoint]
     """
-    peak_metrics_response, mean_metrics_response = self._get_api_response(
-        metric_type, start_time_sec, end_time_sec, instance, period)
-    metrics_data = _create_metric_points_from_response(
-        peak_metrics_response, mean_metrics_response, factor)
-
+    metrics_response = self._get_api_response(
+        metric_type, start_time_sec, end_time_sec, instance, period, aligner, fs_op)
+    metrics_data = _create_metric_points_from_response(metrics_response, factor)
     return metrics_data
 
   def fetch_metrics_and_write_to_google_sheet(self, start_time_sec,
@@ -193,18 +178,33 @@ class VmMetrics:
     Returns: None
     """
     self._validate_start_end_times(start_time_sec, end_time_sec)
-    cpu_uti_data = self._get_metrics(start_time_sec, end_time_sec, instance,
-                                     period, CPU_UTI_METRIC, 1 / 100)
-    rec_bytes_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+    cpu_uti_peak_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+                                     period, CPU_UTI_METRIC, 1 / 100, 'ALIGN_MAX', '')
+    cpu_uti_mean_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+                                     period, CPU_UTI_METRIC, 1 / 100, 'ALIGN_MEAN', '')
+    rec_bytes_peak_data = self._get_metrics(start_time_sec, end_time_sec, instance,
                                        period, RECEIVED_BYTES_COUNT_METRIC,
-                                       60)
+                                       60, 'ALIGN_MAX', '')
+    rec_bytes_mean_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+                                       period, RECEIVED_BYTES_COUNT_METRIC,
+                                       60, 'ALIGN_MEAN', '')
+    ops_error_count_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+                                       period, OPS_ERROR_COUNT_METRIC,
+                                       1, 'ALIGN_DELTA', 'GetXattr')
+    ops_latency_mean_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+                                       period, OPS_LATENCY_METRIC,
+                                       1, 'ALIGN_DELTA', 'ReadFile')
+    read_bytes_count_data = self._get_metrics(start_time_sec, end_time_sec, instance,
+                                       period, READ_BYTES_COUNT_METRIC,
+                                       1, 'ALIGN_DELTA', '')      
+                                                              
     metrics_data = []
-    for cpu_uti_metric_point, rec_bytes_metric_point in zip(
-        cpu_uti_data, rec_bytes_data):
+    for cpu_uti_peak, cpu_uti_mean, rec_bytes_peak, rec_bytes_mean, ops_error_count, ops_latency, read_bytes_count in zip(
+        cpu_uti_peak_data, cpu_uti_mean_data, rec_bytes_peak_data, rec_bytes_mean_data, ops_error_count_data, ops_latency_mean_data, read_bytes_count_data):
       metrics_data.append([
-          cpu_uti_metric_point.start_time_sec, cpu_uti_metric_point.peak_value,
-          cpu_uti_metric_point.mean_value, rec_bytes_metric_point.peak_value,
-          rec_bytes_metric_point.mean_value
+          cpu_uti_peak.start_time_sec, cpu_uti_peak.value, cpu_uti_mean.value,
+          rec_bytes_peak.value, rec_bytes_mean.value,
+          ops_error_count.value, ops_latency.value, read_bytes_count.value
       ])
 
     # Writing metrics data to google sheet
