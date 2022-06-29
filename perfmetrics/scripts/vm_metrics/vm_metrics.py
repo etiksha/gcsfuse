@@ -145,6 +145,7 @@ class VmMetrics:
     except:
       raise GoogleAPICallError('The request for peak response of ' +
                                metric_type + ' failed, Please try again.')
+    print(metrics_response)
     return metrics_response
 
   def _get_metrics(self, start_time_sec, end_time_sec, instance, period,
@@ -193,7 +194,7 @@ class VmMetrics:
                                        1, 'ALIGN_DELTA', 'GetXattr')
     ops_latency_mean_data = self._get_metrics(start_time_sec, end_time_sec, instance,
                                        period, OPS_LATENCY_METRIC,
-                                       1, 'ALIGN_DELTA', 'ReadFile')
+                                       1000, 'ALIGN_DELTA', 'ReadFile')
     read_bytes_count_data = self._get_metrics(start_time_sec, end_time_sec, instance,
                                        period, READ_BYTES_COUNT_METRIC,
                                        1, 'ALIGN_DELTA', '')      
