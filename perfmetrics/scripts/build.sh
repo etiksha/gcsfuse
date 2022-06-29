@@ -2,7 +2,7 @@
 #!/bin/bash
 set -e
 echo Running fio test..
-fio job_files/job_1.fio --lat_percentiles 1 --output-format=json --output='output.json' --experimental-stackdriver-export-interval=60s
+fio job_files/job_7.fio --lat_percentiles 1 --output-format=json --output='output.json' --experimental-stackdriver-export-interval=60s
 echo Installing requirements..
 pip install -r requirements.txt --user
 echo Adding pytest to PATH:
