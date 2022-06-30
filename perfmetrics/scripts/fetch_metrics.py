@@ -30,7 +30,7 @@ if __name__ == '__main__':
     print(f'Getting VM metrics for job {ind}...')
     if(ind<5 or ind==7):
       vm_metrics_obj.fetch_metrics_and_write_to_google_sheet(
-        start_time_sec, end_time_sec, "etiksha-vm-metrics", PERIOD, 'ReadFile')
+        start_time_sec, end_time_sec, INSTANCE, PERIOD, 'ReadFile')
     else:
       vm_metrics_obj.fetch_metrics_and_write_to_google_sheet(
-        start_time_sec, end_time_sec, "etiksha-vm-metrics", PERIOD, 'WriteFile')
+        start_time_sec, end_time_sec, INSTANCE, PERIOD, 'WriteFile')
