@@ -158,7 +158,7 @@ class VmMetrics:
     
     if(metric_type != OPS_ERROR_COUNT_METRIC and metrics_response == {}):
         raise NoValuesError('No values were retrieved from the call')
-
+    print(metrics_response)
     return metrics_response
 
   def _get_metrics(self, start_time_sec, end_time_sec, instance, period,
