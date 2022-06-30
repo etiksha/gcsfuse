@@ -50,7 +50,7 @@ LAT_95_PERC = 'lat_95_perc'
 IO_BYTES = 'io_bytes'
 
 # Google sheet worksheet
-WORKSHEET_NAME = 'fio_expt!'
+WORKSHEET_NAME = 'fio_metrics!'
 
 FILESIZE_CONVERSION = {
     'b': 0.001,
