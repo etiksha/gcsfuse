@@ -50,7 +50,7 @@ LAT_95_PERC = 'lat_95_perc'
 IO_BYTES = 'io_bytes'
 
 # Google sheet worksheet
-WORKSHEET_NAME = 'fio_metrics!'
+WORKSHEET_NAME = 'fio_expt!'
 
 FILESIZE_CONVERSION = {
     'b': 0.001,
@@ -167,7 +167,7 @@ class FioMetrics:
     Returns:
       List of dicts, contains list of jobs and required metrics for each job
       Example return value:
-        [{'jobname': '1_thread', 'filesize': 50000, 'num_threads': 40,
+        [{'jobname': '1_thread', 'filesize': 50000, 'num_threads': 40, 'rw': 'read'
         'start_time': 1653027084, 'end_time': 1653027155, 'iops': 95.26093,
         'bw_bytes': 99888128, 'lat_s': {'min': 0.35337776000000004, 'max':
         1.6975198690000002, 'mean': 0.41775487677469203, 'lat_20_perc':
@@ -205,10 +205,17 @@ class FioMetrics:
     # Looping from end since the given time is the final end time
     for job in reversed(fio_out[JOBS]):
       ramptime_ms = 0
+      rw = global_rw
       if JOB_OPTS in job:
         if RAMPTIME in job[JOB_OPTS]:
           ramptime_ms = _convert_value(job[JOB_OPTS][RAMPTIME],
                                        RAMPTIME_CONVERSION, 's')
+
+        if RW in job[JOB_OPTS]:
+          rw = job[JOB_OPTS][RW]
+
+      job_rw = job[_get_rw(rw)]
+        
       if ramptime_ms == 0:
         ramptime_ms = global_ramptime_ms
 
@@ -216,7 +223,7 @@ class FioMetrics:
       end_time_ms = prev_start_time_s * 1000 if prev_start_time_s > 0 else fio_out[
           TIMESTAMP_MS]
       # job start time = job end time - job runtime - ramp time
-      start_time_ms = end_time_ms - job[READ][RUNTIME] - ramptime_ms
+      start_time_ms = end_time_ms - job_rw[RUNTIME] - ramptime_ms
 
       # converting start and end time to seconds
       start_time_s = start_time_ms // 1000
