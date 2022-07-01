@@ -146,7 +146,9 @@ class VmMetrics:
       elif (metric_type == OPS_LATENCY_METRIC):
         metric_filter = ('{} AND metric.labels.fs_op = {}'
                         ).format(metric_filter, TEST_TYPE)
-
+    else:
+      raise Exception('Unhandled metric type')
+      
     try:
       metrics_response = client.list_time_series({
           'name': PROJECT_NAME,
@@ -204,7 +206,11 @@ class VmMetrics:
     """
     self._validate_start_end_times(start_time_sec, end_time_sec)
     global TEST_TYPE
-    TEST_TYPE = test_type
+    if test_type == 'read' or test_type == 'randread':
+      TEST_TYPE = 'ReadFile'
+    elif test_type == 'write' or test_type == 'randwrite':
+      TEST_TYPE = 'WriteFile'
+
     cpu_uti_peak_data = self._get_metrics(start_time_sec, end_time_sec,
                                           instance, period, CPU_UTI_METRIC,
                                           1 / 100, 'ALIGN_MAX')
