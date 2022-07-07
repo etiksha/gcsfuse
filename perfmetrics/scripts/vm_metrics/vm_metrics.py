@@ -45,10 +45,10 @@ class Metric:
   metric_type: str
   factor: float
   aligner: str
-  metric_point_list: list[MetricPoint] = field(default_factory=list)
   extra_filter: str = ''
   reducer: str = 'REDUCE_NONE'
   group_fields: list[str] = field(default_factory=list)
+  metric_point_list: list[MetricPoint] = field(default_factory=list)
 
 CPU_UTI_PEAK = Metric(metric_type=CPU_UTI_METRIC_TYPE, factor=1/100, aligner='ALIGN_MAX')
 CPU_UTI_MEAN = Metric(metric_type=CPU_UTI_METRIC_TYPE, factor=1/100, aligner='ALIGN_MEAN')
